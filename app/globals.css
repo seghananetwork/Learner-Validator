@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap");
+
+html,
+body {
+  background: #f4f7f1;
+  color: #1c231d;
+}
+
+::selection {
+  background: #c9d9ba;
+}
+
+.tap-highlight-none {
+  -webkit-tap-highlight-color: transparent;
+}
