@@ -1,82 +1,89 @@
-# Learner Validator (Agritech, Year 3 Cohort 1)
+# Learner Validator
 
-Offline-first field tool: Google-authenticated staff validate the 9 enrollment
-fields for each learner, working with zero connectivity, then submit a batch
-that emails an Excel file to `merl@seghana.net`.
+Multi-hub, offline-first field tool. Coordinators upload each hub's learner
+sheet once; enumerators sign in, pick their hub, and validate the 9
+enrollment fields per learner — including with zero connectivity. Submitting
+emails a validated Excel file to `merl@seghana.net` and writes the validated
+values back into the shared database.
 
-## What's already built
-- 215 Agritech learners preloaded from `data/agritech-learners.json` (parsed
-  from the PDF you shared). To validate a different hub next, replace this
-  file with the same shape (see `Learner` type in `lib/constants.ts`) — the
-  rest of the app is hub-agnostic (just also update `HUB` in `lib/constants.ts`).
-- Google sign-in via NextAuth, with an optional email allow-list.
-- Every validation is saved to IndexedDB on-device immediately — closing the
-  app, losing signal, or a full restart won't lose progress.
-- Submit sends immediately if online; if offline, it queues and auto-sends
-  the moment the device reconnects (checked on every `online` browser event).
-- Installable as a PWA so the app shell itself loads with no network.
+## What's new in this version
+- **Real shared database** (Postgres) instead of a single bundled file, so
+  every hub's data lives centrally and multiple enumerators can work the
+  same hub over time without overwriting each other's uploads.
+- **Hub picker** after login — all 18 hubs are built in (`lib/hubs.ts`).
+- **Admin dashboard** (`/admin`) for coordinators to upload a filled-in
+  spreadsheet per hub, and see validated/total counts per hub.
+- **"Add a learner not on this list"** — enumerators can add a replacement
+  learner in the field (e.g. swapping out an over-age learner), which syncs
+  to the database and is included in their next submission.
+- **SE Ghana logo** — drop `logo.png` into `public/` and it appears
+  automatically (falls back to a text mark if missing).
+- Bigger, higher-contrast buttons throughout.
 
 ## One-time setup
 
-1. **Install dependencies** (needs network — not possible in this sandbox):
-   ```
-   npm install
-   ```
+1. **Install dependencies**: `npm install`
 
-2. **Google OAuth credentials**
-   - Go to Google Cloud Console → APIs & Services → Credentials → Create OAuth
-     Client ID → Web application.
-   - Authorized redirect URI: `https://YOUR-DOMAIN/api/auth/callback/google`
-     (and `http://localhost:3000/api/auth/callback/google` for local dev).
-   - Copy the client ID/secret into `.env.local` (see `.env.example`).
+2. **Create a Postgres database**
+   - In your Vercel project: Storage tab → Create Database → Postgres →
+     follow the prompts, then click "Connect" to link it to this project.
+     Vercel automatically injects `POSTGRES_URL` etc. as environment
+     variables — you don't need to copy them by hand for the deployed app.
+   - **Run the schema once**: open the database's Query tab in Vercel and
+     paste the contents of `sql/schema.sql`, then run it. This creates the
+     `learners` table.
+   - For local development, copy the `POSTGRES_URL` shown in Vercel's
+     "Quickstart" / `.env.local` snippet into your own `.env.local`.
 
-3. **Email sending**
-   - You need SMTP credentials that can send *as* `noreply@seghana.net`
-     (e.g. a Google Workspace app password for that mailbox, or your
-     transactional email provider's SMTP details).
-   - Fill in `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` in `.env.local`.
-   - If you'd rather use an API-based sender (Resend, Postmark, SendGrid API)
-     instead of SMTP, swap the implementation in `app/api/submit/route.ts` —
-     the rest of the app doesn't need to change.
+3. **Google OAuth, SMTP, allow-list** — same as before, see `.env.example`.
+   New: **`ADMIN_EMAILS`** — comma-separated Gmail addresses that can reach
+   `/admin` to upload learner sheets. Admins can always sign in even if not
+   listed in `ALLOWED_EMAILS`.
 
-4. **Allow-list**
-   - Set `ALLOWED_EMAILS` to a comma-separated list of your field staff's
-     personal Gmail addresses. Leave blank while testing to allow anyone in.
-
-5. **Icons**
-   - Add `public/icon-192.png` and `public/icon-512.png` (any square PNG) so
-     the PWA install prompt has artwork. The app works without them.
+4. **Logo** — save your SE Ghana logo as `public/logo.png` (any reasonable
+   size, transparent background looks best). No code changes needed.
 
 ## Local development
 ```
 npm install
-cp .env.example .env.local   # fill in values
+cp .env.example .env.local   # fill in values, including POSTGRES_URL
 npm run dev
 ```
 
 ## Deploy to Vercel
-```
-vercel
-```
-Then set the same environment variables in the Vercel project settings
-(Settings → Environment Variables) and redeploy. Set `NEXTAUTH_URL` to your
-production URL.
+Push to GitHub, import into Vercel, add all environment variables (including
+the Postgres ones once the database is connected), deploy. Set
+`NEXTAUTH_URL` to your live domain and add the matching redirect URI in
+Google Cloud Console (see earlier setup notes if you have them).
 
-## How field staff use it
-1. Open the app **once while online** so it caches and the learner list loads
-   into IndexedDB, then sign in with Google.
-2. Go validate learners anywhere — flights, farms, no signal needed. Each of
-   the 9 fields can be confirmed as-is or edited.
-3. Tap **Submit validated learners** whenever convenient. If offline, it's
-   queued silently and sent automatically once back on network — no need to
-   remember to retry.
+## How coordinators upload data
+1. Sign in, tap the black "Go to admin dashboard" button.
+2. Download the template, fill in one learner per row, save.
+3. Pick the correct hub, choose the file, tap "Upload learners".
+4. Repeat any time there's more data — uploads add to a hub, they don't
+   replace what's already there. See `Learner-Validator-Guide.docx` for the
+   full illustrated walkthrough to share with colleagues.
 
-## Notes / things to decide before real rollout
-- The allow-list is a single env var today; if the field team is large, a
-  proper user table would scale better long-term.
-- One workbook per submission batch (not per learner) keeps MERL's inbox
-  manageable — a learner is only included in a batch once, then marked
-  "Submitted" and excluded from the next batch.
-- Currently ships with the Agritech list baked in. Swapping hubs means
-  swapping the JSON file for now; adding an in-app CSV/Excel importer for
-  new hubs is a natural next step once this version is validated with users.
+## How enumerators validate
+1. Sign in while online, tap a hub to download its learner list.
+2. Validate fields (works fully offline from here).
+3. Use "Add a learner not on this list" for replacements.
+4. Tap Submit — sends immediately if online, or queues and auto-sends once
+   back online.
+
+## Loading the Agritech data you already have
+Your original 215-learner Agritech list (from the PDF) is preserved at
+`data/agritech-learners.json` and pre-converted into `sql/seed_agritech.sql`.
+After running `sql/schema.sql`, run `sql/seed_agritech.sql` the same way
+(paste into Vercel's Postgres Query tab and run) to load those 215 learners
+straight into the Agritech hub — no need to re-upload them through the admin
+page.
+
+## Notes
+- Learner data model: each learner row keeps both the *original* uploaded
+  values and the *validated* values, so nothing is silently overwritten.
+- A learner is only ever included in one email submission — once validated
+  and submitted, they're marked "Submitted" and excluded from future
+  batches for that device.
+- `Learner-Validator-Guide.docx` is a ready-to-share instructions document
+  for both coordinators and enumerators.

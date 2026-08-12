@@ -2,23 +2,25 @@
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { HUB, COHORT } from "@/lib/constants";
-import learners from "@/data/agritech-learners.json";
+import Logo from "@/components/Logo";
 
 export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "authenticated") router.replace("/validate");
+    if (status === "authenticated") router.replace("/select-hub");
   }, [status, router]);
 
   return (
     <main className="min-h-screen flex flex-col">
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-16">
         <div className="w-full max-w-md">
+          <div className="mb-6">
+            <Logo size={44} />
+          </div>
           <p className="font-body text-xs tracking-[0.2em] uppercase text-field-600 mb-3">
-            SEG Ghana &middot; Field Ledger
+            Field Ledger
           </p>
           <h1 className="font-display text-4xl sm:text-5xl leading-tight text-ink mb-4">
             Validate learners,
@@ -26,17 +28,16 @@ export default function Home() {
             no signal required.
           </h1>
           <p className="text-ink/70 mb-10 leading-relaxed">
-            Confirm or correct each learner&rsquo;s enrollment record for{" "}
-            <span className="font-semibold text-field-700">{HUB}</span> &mdash; {COHORT}. Your
-            work is saved on this device and submitted the moment you&rsquo;re back online.
+            Confirm or correct each learner&rsquo;s enrollment record, hub by hub. Your work is
+            saved on this device and submitted the moment you&rsquo;re back online.
           </p>
 
           {status !== "authenticated" && (
             <button
               onClick={() => signIn("google")}
-              className="w-full flex items-center justify-center gap-3 bg-ink text-white rounded-full py-3.5 font-medium hover:bg-field-800 transition-colors"
+              className="w-full flex items-center justify-center gap-3 bg-ink text-white rounded-full py-4 text-lg font-semibold shadow-lg hover:bg-field-800 active:scale-[0.99] transition-all"
             >
-              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 18 18" aria-hidden="true">
                 <path
                   fill="#fff"
                   d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"
@@ -59,15 +60,9 @@ export default function Home() {
           )}
 
           <p className="text-xs text-ink/40 mt-6 leading-relaxed">
-            Sign-in is restricted to approved SEG Ghana field staff accounts. This dataset
-            contains disability, refugee/IDP and guardian information &mdash; keep this device
-            secured.
+            Sign-in is restricted to approved SEG Ghana staff accounts. This dataset contains
+            disability, refugee/IDP and guardian information &mdash; keep this device secured.
           </p>
-
-          <div className="mt-14 border-t border-ink/10 pt-6 flex items-center justify-between text-sm text-ink/50">
-            <span>{learners.length} learners loaded</span>
-            <span>Works fully offline after first load</span>
-          </div>
         </div>
       </div>
     </main>

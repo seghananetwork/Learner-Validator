@@ -50,7 +50,8 @@ export const FIELD_LABELS = [
 ] as const;
 
 export type Learner = {
-  sn: number;
+  id?: number; // present once this learner exists in the shared database
+  sn: number | null;
   name: string;
   gender: string;
   populationSegment: string;
@@ -69,7 +70,9 @@ export type ValidatedField<T> = {
 };
 
 export type ValidatedLearner = {
-  sn: number;
+  id?: number;
+  sn: number | null;
+  isNew?: boolean; // added in the field by an enumerator, not from the original sheet
   name: ValidatedField<string>;
   gender: ValidatedField<string>;
   populationSegment: ValidatedField<string>;
@@ -86,6 +89,7 @@ export type ValidatedLearner = {
 export function toValidatedLearner(l: Learner): ValidatedLearner {
   const f = <T,>(v: T): ValidatedField<T> => ({ original: v, value: v, confirmed: false });
   return {
+    id: l.id,
     sn: l.sn,
     name: f(l.name),
     gender: f(l.gender),
@@ -103,6 +107,25 @@ export function toValidatedLearner(l: Learner): ValidatedLearner {
 
 export function isComplete(l: ValidatedLearner): boolean {
   return FIELD_KEYS.every((k) => (l[k] as ValidatedField<string>).confirmed);
+}
+
+export function blankNewLearner(nextSn: number): ValidatedLearner {
+  const base = toValidatedLearner({
+    sn: null,
+    name: "",
+    gender: "Female",
+    populationSegment: "N/A",
+    typeOfDisability: "N/A",
+    dob: "",
+    typeOfId: "Ecowas Card",
+    phone: "",
+    guardianContact: "",
+    employmentStatus: "Not employed",
+  });
+  base.isNew = true;
+  // negative sn used only as a temporary local list-ordering key, not sent anywhere meaningful
+  base.sn = -nextSn;
+  return base;
 }
 
 export const FIELD_KEYS = [

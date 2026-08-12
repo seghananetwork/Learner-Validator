@@ -1,10 +1,6 @@
 import { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-
-const allowList = (process.env.ALLOWED_EMAILS || "")
-  .split(",")
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
+import { isAllowed, isAdmin } from "./roles";
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -15,11 +11,12 @@ export const authOptions: AuthOptions = {
   ],
   callbacks: {
     async signIn({ user }) {
-      if (allowList.length === 0) return true; // allow-list disabled
-      if (!user.email) return false;
-      return allowList.includes(user.email.toLowerCase());
+      return isAllowed(user.email);
     },
     async session({ session }) {
+      if (session.user?.email) {
+        (session.user as any).isAdmin = isAdmin(session.user.email);
+      }
       return session;
     },
   },
