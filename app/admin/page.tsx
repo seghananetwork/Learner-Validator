@@ -12,7 +12,7 @@ export default function AdminPage() {
   const router = useRouter();
   const isAdmin = (session?.user as any)?.isAdmin;
 
-  const [hub, setHub] = useState(HUBS[0].slug);
+  const [hub, setHub] = useState<string>(HUBS[0].slug);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
